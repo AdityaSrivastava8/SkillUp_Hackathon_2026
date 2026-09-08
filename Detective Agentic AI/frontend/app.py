@@ -579,8 +579,8 @@ with tab_contact:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("### 📧 Founders — Direct Contact")
-        st.markdown("**Aditya Srivastava** \nLead Developer & Founder  \n📩 [yeahboyadi@gmail.com](mailto:yeahboyadi@gmail.com)")
-        st.markdown("**Akshat Verma** \nCo-Founder  \n📩 [akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)")
+        st.markdown("**Aditya Srivastava** \nFounder  \n📩 [yeahboyadi@gmail.com](mailto:yeahboyadi@gmail.com)")
+        st.markdown("**Akshat Verma** \nPartner  \n📩 [akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)")
         st.markdown("---")
         st.markdown("### 🐛 Bug Reports")
         st.markdown("Please include:  \n- What you were doing  \n- What error / unexpected behaviour appeared  \n- Screenshot if possible  \n\nSend to **[yeahboyadi@gmail.com](mailto:yeahboyadi@gmail.com)** or **[akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)** with subject line: `[BUG] Detective AI — <short description>`")
