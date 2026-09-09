@@ -75,25 +75,28 @@ def submit_payment(
             required_amount
         )
 
-    if not isinstance(amount_paid, (int, float)) or not math.isfinite(amount_paid) or amount_paid < 0:
+    if not isinstance(amount_paid, (int, float)) or not math.isfinite(amount_paid) or amount_paid <= 0:
         return STATUS_FLAGGED, "❌ Invalid payment amount.", required_amount
 
     payments = load_payments()
 
     # Step 2: Check for duplicate UTR submissions
     for pmt in payments:
-        if pmt.get("utr") == utr_clean:
-            return STATUS_FLAGGED, "⚠️ This UTR ID has already been submitted and processed.", 0.0
+        if (
+            pmt.get("utr") == utr_clean
+            or utr_clean in pmt.get("topup_utrs", [])
+        ):
+            return STATUS_FLAGGED, "⚠️ This UTR ID has already been submitted.", 0.0
 
     # Step 3: Calculate balance
     remaining = max(0.0, required_amount - amount_paid)
 
     if amount_paid >= required_amount:
         status = STATUS_PENDING
-        msg = f"✅ Payment proof submitted for admin verification. Your plan '{plan}' will unlock after approval."
+        msg = f"✅ Payment proof submitted for admin verification. The claimed ₹{amount_paid:,.0f} is not confirmed until approval."
     else:
         status = STATUS_PARTIAL
-        msg = f"⚠️ Partial Payment Detected: Plan price is ₹{required_amount:,.0f}, but you paid ₹{amount_paid:,.0f}. Please pay the remaining ₹{remaining:,.0f} to unlock your evaluations."
+        msg = f"⚠️ Partial payment proof submitted for review. You claimed ₹{amount_paid:,.0f} of ₹{required_amount:,.0f}; the remaining ₹{remaining:,.0f} is based on your claim and is not verified."
 
     new_record = {
         "utr": utr_clean,
@@ -114,8 +117,7 @@ def submit_payment(
 
 def submit_topup(topup_utr: str, parent_utr: str, topup_amount: float) -> Tuple[str, str, float]:
     """
-    Processes a top-up payment for an incomplete payment balance:
-    Deducts new amount from remaining balance and auto-approves when remaining == 0.
+    Records a top-up claim for admin verification.
     """
     topup_utr_clean = topup_utr.strip()
 
@@ -131,13 +133,22 @@ def submit_topup(topup_utr: str, parent_utr: str, topup_amount: float) -> Tuple[
 
     payments = load_payments()
 
+    # A UTR must be unique across original payments and all top-ups.
+    if any(
+        pmt.get("utr") == topup_utr_clean
+        or topup_utr_clean in pmt.get("topup_utrs", [])
+        for pmt in payments
+    ):
+        return STATUS_FLAGGED, "⚠️ This UTR ID has already been submitted.", 0.0
+
     for pmt in payments:
         if pmt.get("utr") == parent_utr:
+            if pmt.get("status") not in [STATUS_PARTIAL, STATUS_TOPUP_DONE]:
+                return STATUS_FLAGGED, "⚠️ This payment is not awaiting a top-up.", pmt.get("remaining_balance", 0.0)
+            if pmt.get("remaining_balance", 0.0) <= 0:
+                return STATUS_FLAGGED, "⚠️ Full payment proof is already awaiting admin verification.", 0.0
             if "topup_utrs" not in pmt:
                 pmt["topup_utrs"] = []
-
-            if topup_utr_clean in pmt["topup_utrs"] or topup_utr_clean == parent_utr:
-                return STATUS_FLAGGED, "⚠️ This top-up UTR has already been submitted.", pmt.get("remaining_balance", 0.0)
 
             # Update totals
             pmt["topup_utrs"].append(topup_utr_clean)
@@ -146,11 +157,11 @@ def submit_topup(topup_utr: str, parent_utr: str, topup_amount: float) -> Tuple[
             pmt["remaining_balance"] = new_remaining
 
             if new_remaining == 0.0:
-                pmt["status"] = STATUS_APPROVED
-                msg = f"🎉 Congratulations! Top-up of ₹{topup_amount:,.0f} completed your payment. Your '{pmt['plan']}' plan is unlocked!"
+                pmt["status"] = STATUS_TOPUP_DONE
+                msg = f"✅ Top-up proof submitted for admin verification. The claimed ₹{topup_amount:,.0f} is not confirmed until approval."
             else:
                 pmt["status"] = STATUS_PARTIAL
-                msg = f"⚠️ Top-up of ₹{topup_amount:,.0f} received. Remaining balance: ₹{new_remaining:,.0f}. Please pay the rest to unlock."
+                msg = f"⚠️ Top-up proof submitted for review. The claimed remaining balance is ₹{new_remaining:,.0f}."
 
             save_payments(payments)
             return pmt["status"], msg, new_remaining

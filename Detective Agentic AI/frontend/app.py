@@ -368,6 +368,10 @@ if st.session_state.is_admin:
 
     if st.session_state.admin_open:
         st.sidebar.markdown("#### 🧾 All Pending Submissions")
+        st.sidebar.warning(
+            "UTRs and amounts are user claims until checked in your UPI/bank app. "
+            "Approve only after the transaction, amount, and payee match."
+        )
         _all_pending = get_pending_payments()
         if not _all_pending:
             st.sidebar.info("No pending submissions.")
@@ -393,7 +397,7 @@ if st.session_state.is_admin:
                     if pmt.get("topup_utrs"):
                         st.write(f"**Top-up UTRs:** {', '.join(pmt['topup_utrs'])}")
                     _acol, _fcol = st.columns(2)
-                    if _acol.button("✅ Approve", key=f"pay_verify_{_putr}_approve"):
+                    if _acol.button("✅ Approve After Bank Check", key=f"pay_verify_{_putr}_approve"):
                         if approve_payment(_putr):
                             evals = _pevals
                             if evals == "Unlimited":
