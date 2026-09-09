@@ -443,7 +443,7 @@ st.sidebar.markdown(
     "📧 [akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)"
 )
 
-st.title("🕵️‍♂️ DetectiveAI")
+st.title("🕵️‍♂️ Detective AI")
 st.markdown("Detective Agentic AI & RAG Profiling System : Automated criminal pattern recognition, risk evaluation, and precedent retrieval engine.")
 st.divider()
 
