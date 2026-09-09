@@ -191,7 +191,7 @@ Secure audit logs for administrative activities.
 
 The Admin Portal is a secure, admin-only section protected by a PIN. It ensures that only authorized administrators can access and manage platform-level features.
 Once authenticated, the administrator can unlock the portal and manage outreach and deployment activities for offering the Detective Agentic AI to different detective agencies.
-After entering 3 digit pin. Admin can access this option.
+After entering 3 digit pin Admins can access this option.
 
 ### Future Prospects
 
@@ -212,8 +212,8 @@ Monitor platform activity and performance.
 
 The Pending Submissions section allows the admin to view all pending payment submissions made by users. It displays the relevant payment details, including the user name and UTR ID, so the admin can verify the transaction before approving the payment.
 This helps ensure that subscription payments are properly verified and prevents unauthorized plan activation.
-This option is exclusively for Admins, So after entering 3 digit pin. Admin can access this option.
-After full payment Admin allows the user to enjoy his/her desired plan.
+This option is exclusively for Admins, So after entering 3 digit pin. Only Admins can access this option.
+After full payment Admins allow the user to enjoy his/her desired plan.
 
 ### Future Prospects
 
