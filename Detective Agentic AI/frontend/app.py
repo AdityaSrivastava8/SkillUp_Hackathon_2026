@@ -718,15 +718,16 @@ if st.session_state.is_admin:
                 try:
                     scraped_data = scrape_leads_sync(target_keyword, target_location, max_results=20, allow_generated=allow_generated)
                     if scraped_data:
-                        # filter scraped_data by confidence (missing confidence treated as 50)
+                        # Show scraped results (restore original behaviour: display all scraped leads)
+                        displayed = scraped_data
                         try:
+                            # still compute confidence column for info if present
                             scraped_df = pd.DataFrame(scraped_data)
                             scraped_df['confidence'] = scraped_df.get('confidence', 50).fillna(50)
-                            displayed = [r for r in scraped_data if int(r.get('confidence', 50)) >= int(min_conf)]
                         except Exception:
-                            displayed = scraped_data
+                            pass
 
-                        st.success(f"Successfully scraped {len(scraped_data)} leads! (showing {len(displayed)} after confidence filter)")
+                        st.success(f"Successfully scraped {len(scraped_data)} leads!")
                         st.dataframe(pd.DataFrame(displayed), use_container_width=True)
                     else:
                         st.info("No leads found matching your criteria.")

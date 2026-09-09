@@ -178,5 +178,104 @@
     "phone": "",
     "source": "Generated (Verify Manually)",
     "status": "Prospect"
+  },
+  {
+    "agency_name": "Aaga khan",
+    "location": "Delhi",
+    "contact_email": "aagakhan_adv@yahoo.com",
+    "website": "",
+    "phone": "9818445390",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Unknown"
+  },
+  {
+    "agency_name": "Rajesh Mahale",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "+91 98 10 954774",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Unknown"
+  },
+  {
+    "agency_name": "Pandey Law Chambers",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "+911141771947",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Lawyer"
+  },
+  {
+    "agency_name": "K&K Law Associates",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "+91-98101-23856;+91-93111-92141;+91-98711-85909;+91-95557-92158;+91-99104-60052;+91-95557-92146",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Lawyer"
+  },
+  {
+    "agency_name": "Sushil Kumar",
+    "location": "Delhi",
+    "contact_email": "sushildagar82@yahoo.com;sushildagar82@gmail.com",
+    "website": "",
+    "phone": "+91-93126-42037",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Unknown"
+  },
+  {
+    "agency_name": "Mohanty & Mohanty",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Unknown"
+  },
+  {
+    "agency_name": "SK Associate",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Unknown"
+  },
+  {
+    "agency_name": "Tomar & Associates",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Unknown"
+  },
+  {
+    "agency_name": "Law Bureau",
+    "location": "Delhi",
+    "contact_email": "",
+    "website": "",
+    "phone": "+91 83739 53295;+91 70652 79558",
+    "source": "OpenStreetMap",
+    "status": "Prospect",
+    "confidence": 90,
+    "profession": "Lawyer"
   }
 ]
