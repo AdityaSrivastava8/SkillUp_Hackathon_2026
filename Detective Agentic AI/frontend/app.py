@@ -9,6 +9,8 @@ import time
 import re
 import io
 import secrets
+import shutil
+import datetime
 import pandas as pd
 from fpdf import FPDF
 from agent.analyzer import DetectiveAgent
@@ -19,6 +21,7 @@ from agent.outreach import (
     save_leads,
     COLD_EMAIL_SUBJECT,
     COLD_EMAIL_BODY,
+    LEADS_FILE,
 )
 from agent.billing import (
     submit_payment,
@@ -719,8 +722,100 @@ if st.session_state.is_admin:
                     st.error(f"Scraping failed: {e}")
 
         st.divider()
+        # Optional: Load a previously verified leads CSV (non-destructive, display-only)
+        st.markdown("### ✅ Lead Verification (Optional)")
+        vcol1, vcol2 = st.columns([2, 1])
+        with vcol1:
+            if st.button("Load verified_leads.csv from data folder", key="btn_load_verified"):
+                path = os.path.join(DATA_DIR, "verified_leads.csv")
+                if os.path.exists(path):
+                    try:
+                        verified_df = pd.read_csv(path)
+                        st.session_state['verified_leads_df'] = verified_df
+                        st.success(f"Loaded {len(verified_df)} verified leads from verified_leads.csv")
+                    except Exception as e:
+                        st.error(f"Failed to load verified_leads.csv: {e}")
+                else:
+                    st.warning("verified_leads.csv not found in data folder.")
+        with vcol2:
+            uploaded_ver = st.file_uploader("Or upload verified CSV", type=["csv"], key="upload_verified")
+            if uploaded_ver is not None:
+                try:
+                    verified_df = pd.read_csv(uploaded_ver)
+                    st.session_state['verified_leads_df'] = verified_df
+                    st.success(f"Loaded {len(verified_df)} verified leads from uploaded file")
+                except Exception as e:
+                    st.error(f"Upload failed: {e}")
+
+        # Display verification table if loaded
+        if st.session_state.get('verified_leads_df') is not None:
+            try:
+                vdf = st.session_state.get('verified_leads_df')
+                show_only_verified = st.checkbox("Show only rows with verification_status == 'Verified'", value=True, key="chk_show_only_verified")
+                if show_only_verified and 'verification_status' in vdf.columns:
+                    dftoshow = vdf[vdf['verification_status'].astype(str).str.lower() == 'verified']
+                else:
+                    dftoshow = vdf
+                st.dataframe(dftoshow, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error displaying verified leads: {e}")
+
+        st.divider()
         st.markdown("### 📧 Email Dispatcher")
         saved_leads = load_leads()
+
+        # Merge verification info into loaded saved_leads in-memory (non-destructive)
+        try:
+            if st.session_state.get('verified_leads_df') is not None and saved_leads:
+                vdf = st.session_state.get('verified_leads_df')
+                # normalize keys for matching
+                for lead in saved_leads:
+                    if not isinstance(lead, dict):
+                        continue
+                    lead_name = str(lead.get('agency_name') or lead.get('company_name') or lead.get('name') or '').strip().lower()
+                    lead_site = str(lead.get('website') or lead.get('url') or '').strip().lower()
+                    match = None
+                    if not vdf.empty:
+                        # try exact name match
+                        if lead_name:
+                            matches = vdf[vdf.get('agency_name', '').astype(str).str.strip().str.lower() == lead_name]
+                            if len(matches) == 0 and lead_site and 'website' in vdf.columns:
+                                matches = vdf[vdf['website'].astype(str).str.strip().str.lower() == lead_site]
+                            if len(matches) > 0:
+                                match = matches.iloc[0]
+                    if match is not None:
+                        # copy verification fields if present
+                        for k in ['verification_status', 'verification_score', 'verified_sources', 'verified_at']:
+                            if k in match.index:
+                                lead[k] = match.get(k, lead.get(k))
+        except Exception:
+            pass
+
+        # Save merged leads button (admin action) - only enabled if saved_leads loaded
+        if saved_leads:
+            if st.button("Save merged leads to data/leads.json and export CSV", key="btn_save_merged"):
+                try:
+                    # create timestamped backup of existing leads file if present
+                    try:
+                        if os.path.exists(LEADS_FILE):
+                            backup_path = LEADS_FILE + ".backup." + datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+                            shutil.copy2(LEADS_FILE, backup_path)
+                    except Exception:
+                        pass
+
+                    # persist via existing helper (writes to agent/data/leads.json)
+                    save_leads(saved_leads)
+
+                    # also write a CSV copy for convenience
+                    csv_path = os.path.join(DATA_DIR, "leads_merged.csv")
+                    try:
+                        pd.DataFrame(saved_leads).to_csv(csv_path, index=False)
+                    except Exception:
+                        pass
+
+                    st.success(f"Saved merged leads to leads.json and {os.path.basename(csv_path)} (backup created if present).")
+                except Exception as e:
+                    st.error(f"Failed to save merged leads: {e}")
 
         if saved_leads:
             email_ready_count = sum(
