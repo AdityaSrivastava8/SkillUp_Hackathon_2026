@@ -122,13 +122,16 @@ def _consume_trial(user_id: str) -> int:
     _save_trial_usage(usage)
     return TRIAL_LIMIT - used - 1
 
-ADMIN_PASSWORD = "Adi"
+ADMIN_PIN = "739"
 
-def _get_admin_password() -> str:
+def _get_admin_pin() -> str:
     try:
-        return str(st.secrets["ADMIN_PASSWORD"])
+        configured_pin = str(st.secrets["ADMIN_PIN"]).strip()
+        if re.fullmatch(r"\d{3}", configured_pin):
+            return configured_pin
     except Exception:
-        return ADMIN_PASSWORD
+        pass
+    return ADMIN_PIN
 
 def _get_gmail_app_password() -> str:
     """Read the Gmail App Password from Streamlit secrets."""
@@ -240,7 +243,11 @@ if uploaded_file is not None:
         save_path = os.path.join(cases_dir, uploaded_file.name)
         with open(save_path, "w", encoding="utf-8") as f:
             json.dump(case_data, f, indent=4)
-        st.sidebar.success(f"Indexed '{uploaded_file.name}'!")
+        indexed_count = agent.reload_cases()
+        st.sidebar.success(
+            f"Indexed '{uploaded_file.name}'! The active case index now contains "
+            f"{indexed_count} cases."
+        )
     except Exception as e:
         st.sidebar.error(f"Upload failed: {e}")
 
@@ -350,15 +357,15 @@ with st.sidebar.expander("🔐 Admin Portal", expanded=False):
             st.session_state.max_evals = TRIAL_LIMIT
             st.rerun()
     else:
-        admin_pw = st.text_input("Admin Password", type="password", placeholder="Enter admin password…", key="admin_pw_input")
+        admin_pw = st.text_input("Admin 3-digit PIN", type="password", placeholder="Enter 3-digit admin PIN…", max_chars=3, key="admin_pw_input")
         if st.button("🔑 Login", use_container_width=True, key="btn_admin_login"):
-            if admin_pw == _get_admin_password():
+            if re.fullmatch(r"\d{3}", admin_pw) and admin_pw == _get_admin_pin():
                 st.session_state.is_admin = True
                 st.session_state.evals_left = "Unlimited"
                 st.session_state.max_evals = "Unlimited"
                 st.rerun()
             else:
-                st.error("❌ Incorrect password.")
+                st.error("❌ Invalid or incorrect 3-digit admin PIN.")
 
 if st.session_state.is_admin:
     st.sidebar.divider()

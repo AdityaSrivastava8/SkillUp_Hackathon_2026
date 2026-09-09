@@ -8,6 +8,10 @@ class DetectiveAgent:
         # Create the RAG retriever when the agent is initialized.
         self.retriever = CaseRetriever()
 
+    def reload_cases(self) -> int:
+        """Refresh indexed cases after a new JSON file is uploaded."""
+        return self.retriever.reload()
+
     def evaluate_suspect(
         self,
         name: str,
@@ -16,12 +20,13 @@ class DetectiveAgent:
         personality_notes: str
     ) -> Dict[str, Any]:
 
-        # Build one combined query from the information supplied by the frontend.
-        query_str = (
-            f"Behavior: {behavior}; "
-            f"Motive/MO: {mo_suspected}; "
-            f"Personality: {personality_notes}"
-        )
+        # Build one query while avoiding duplicate text from the frontend.
+        query_parts = []
+        for value in (behavior, mo_suspected, personality_notes):
+            value_text = str(value or "").strip()
+            if value_text and value_text not in query_parts:
+                query_parts.append(value_text)
+        query_str = "; ".join(query_parts)
 
         # Search the RAG case database for the most similar historical cases.
         retrieved_cases = self.retriever.search_similar_cases(
@@ -66,6 +71,14 @@ class DetectiveAgent:
                 min(95, max(15, base_score + similarity_score))
             )
 
+            strongest_similarity = max(similarities, default=0.0)
+            if strongest_similarity >= 0.55:
+                match_quality = "Strong case-index similarity"
+            elif strongest_similarity >= 0.35:
+                match_quality = "Moderate case-index similarity"
+            else:
+                match_quality = "Weak case-index similarity"
+
         else:
             # Fallback heuristic: analyze keyword severity if no vector match is found.
             combined_text = (
@@ -92,6 +105,7 @@ class DetectiveAgent:
                 )
             else:
                 score = 15
+            match_quality = "No reliable case-index match"
 
         # Convert the numerical score into a risk category.
         if score >= 70:
@@ -105,6 +119,7 @@ class DetectiveAgent:
             "suspect_name": name,
             "tendency_score": f"{score}%",
             "risk_level": risk_level,
+            "match_quality": match_quality,
             "summary": (
                 f"Suspect pattern aligns with {len(matched_cases)} "
                 f"historical cases in the vector database."

@@ -52,6 +52,36 @@ class CaseRetriever:
         self._docs: List[Dict[str, Any]] = []
         self._index_cases()
 
+    def reload(self) -> int:
+        """Rebuild the in-memory index after case files change."""
+        self._docs = []
+        self._index_cases()
+        return len(self._docs)
+
+    @staticmethod
+    def _case_text(case: Dict[str, Any]) -> str:
+        """Flatten common case fields so uploaded evidence is searchable."""
+        def flatten(value: Any) -> str:
+            if isinstance(value, list):
+                return ", ".join(flatten(item) for item in value)
+            if isinstance(value, dict):
+                return ", ".join(
+                    f"{key}: {flatten(item)}"
+                    for key, item in value.items()
+                )
+            return str(value or "")
+
+        fields = (
+            "title", "summary", "crime_type", "location", "status",
+            "modus_operandi", "personality_disorder", "common_traits",
+            "evidence", "suspects", "case_notes", "investigation_notes",
+        )
+        return " ".join(
+            f"{field.replace('_', ' ').title()}: {flatten(case.get(field, ''))}."
+            for field in fields
+            if case.get(field)
+        )
+
     def _index_cases(self) -> None:
         if not os.path.isdir(self.cases_dir):
             return
@@ -71,22 +101,7 @@ class CaseRetriever:
                 if not isinstance(case, dict):
                     continue
 
-                traits = case.get("common_traits", [])
-                if isinstance(traits, list):
-                    traits_text = ", ".join(str(item) for item in traits)
-                elif isinstance(traits, str):
-                    traits_text = traits
-                else:
-                    traits_text = str(traits)
-
-                doc_text = (
-                    f"Title: {case.get('title', '')}. "
-                    f"Modus Operandi: {case.get('modus_operandi', '')}. "
-                    f"Traits: {traits_text}. "
-                    f"Personality: {case.get('personality_disorder', '')}. "
-                    f"Crime Type: {case.get('crime_type', '')}. "
-                    f"Location: {case.get('location', '')}."
-                )
+                doc_text = self._case_text(case)
 
                 tokens = _tokenize(doc_text)
                 if not tokens:

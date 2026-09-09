@@ -176,8 +176,8 @@ def _overpass_search(keyword: str, location: str, max_results: int) -> List[Dict
         email = tags.get("contact:email") or tags.get("email") or ""
         city = tags.get("addr:city") or tags.get("addr:town") or tags.get("addr:suburb") or location
         domain = _domain_from_url(website)
-        if not email:
-            email = f"info@{domain}" if domain else _generated_email(name)
+        # Never invent a mailbox: only use a contact explicitly published by
+        # the organization, otherwise leave it for manual verification.
 
         leads.append({
             "agency_name": name,
@@ -231,7 +231,7 @@ def _duckduckgo_search(keyword: str, location: str, max_results: int) -> List[Di
         leads.append({
             "agency_name": name,
             "location": location,
-            "contact_email": f"info@{domain}" if domain else _generated_email(name),
+            "contact_email": "",
             "website": url,
             "phone": "",
             "source": "DuckDuckGo",
@@ -268,7 +268,7 @@ def _wikipedia_search(keyword: str, location: str, max_results: int) -> List[Dic
         seen.add(key)
         leads.append({
             "agency_name": name, "location": location,
-            "contact_email": _generated_email(name), "website": url,
+            "contact_email": "", "website": url,
             "phone": "", "source": "Wikipedia", "status": "Prospect",
         })
     return leads
@@ -299,7 +299,7 @@ def _seed_leads(keyword: str, location: str, max_results: int) -> List[Dict]:
         used.add(key)
         leads.append({
             "agency_name": name, "location": location,
-            "contact_email": _generated_email(name), "website": "",
+            "contact_email": "", "website": "",
             "phone": "", "source": "Generated (Verify Manually)", "status": "Prospect",
         })
     return leads
