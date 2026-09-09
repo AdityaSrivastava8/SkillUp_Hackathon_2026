@@ -709,13 +709,25 @@ if st.session_state.is_admin:
         with col_loc:
             target_location = st.text_input("Location", value="Delhi", key="outreach_loc")
 
+        # Option to allow generated placeholder leads (disabled by default)
+        allow_generated = st.checkbox("Allow generated placeholder leads when public data is sparse (verify manually)", value=False, key="chk_allow_generated")
+        # Minimum confidence filter for displayed leads (0-100). Default 60 hides low-confidence/generated leads.
+        min_conf = st.slider("Minimum confidence to display leads", 0, 100, 60, key="lead_min_confidence")
         if st.button("🔎 Scrape Leads", type="primary", use_container_width=True, key="btn_scrape_leads"):
             with st.spinner("Scraping leads across web sources..."):
                 try:
-                    scraped_data = scrape_leads_sync(target_keyword, target_location)
+                    scraped_data = scrape_leads_sync(target_keyword, target_location, max_results=20, allow_generated=allow_generated)
                     if scraped_data:
-                        st.success(f"Successfully scraped {len(scraped_data)} leads!")
-                        st.dataframe(pd.DataFrame(scraped_data), use_container_width=True)
+                        # filter scraped_data by confidence (missing confidence treated as 50)
+                        try:
+                            scraped_df = pd.DataFrame(scraped_data)
+                            scraped_df['confidence'] = scraped_df.get('confidence', 50).fillna(50)
+                            displayed = [r for r in scraped_data if int(r.get('confidence', 50)) >= int(min_conf)]
+                        except Exception:
+                            displayed = scraped_data
+
+                        st.success(f"Successfully scraped {len(scraped_data)} leads! (showing {len(displayed)} after confidence filter)")
+                        st.dataframe(pd.DataFrame(displayed), use_container_width=True)
                     else:
                         st.info("No leads found matching your criteria.")
                 except Exception as e:
@@ -818,8 +830,26 @@ if st.session_state.is_admin:
                     st.error(f"Failed to save merged leads: {e}")
 
         if saved_leads:
+            # Apply confidence filter to saved_leads for display/selection (non-destructive)
+            min_conf_local = st.session_state.get("lead_min_confidence", 60)
+            saved_leads_display = []
+            for lead in saved_leads:
+                if not isinstance(lead, dict):
+                    continue
+                try:
+                    conf = int(lead.get('confidence', 50))
+                except Exception:
+                    conf = 50
+                verified = str(lead.get('verification_status', '')).strip().lower() == 'verified'
+                if conf >= int(min_conf_local) or verified:
+                    saved_leads_display.append(lead)
+
+            filtered_out = len(saved_leads) - len(saved_leads_display)
+            if filtered_out > 0:
+                st.info(f"{filtered_out} leads hidden by confidence filter (min {min_conf_local}). Uncheck the filter to view all.")
+
             email_ready_count = sum(
-                1 for lead in saved_leads
+                1 for lead in saved_leads_display
                 if isinstance(lead, dict) and re.fullmatch(
                     r"[^\s@]+@[^\s@]+\.[^\s@]+",
                     str(
@@ -831,7 +861,7 @@ if st.session_state.is_admin:
                 )
             )
             st.write(
-                f"Loaded **{len(saved_leads)}** prospects — "
+                f"Loaded **{len(saved_leads)}** prospects — **{len(saved_leads_display)}** shown (min confidence {min_conf_local}) — "
                 f"**{email_ready_count}** have a valid email address."
             )
             if email_ready_count == 0:
@@ -853,7 +883,7 @@ if st.session_state.is_admin:
                 name, email = str(name).strip(), str(email).strip()
                 return f"{name} — {email}" if email else name
 
-            lead_labels = [_lead_label(lead, index) for index, lead in enumerate(saved_leads)]
+            lead_labels = [_lead_label(lead, index) for index, lead in enumerate(saved_leads_display)]
 
             st.markdown("#### 🎯 Choose Recipients")
             st.caption("Use a command such as `send to Delhi Inquiry Bureau`, `send to ABC and XYZ`, or `send to all`.")
@@ -902,8 +932,8 @@ if st.session_state.is_admin:
                 key="outreach_selected_labels"
             )
             selected_indices = [i for i, label in enumerate(lead_labels) if label in selected_labels]
-            selected_leads = [saved_leads[i] for i in selected_indices]
-            st.info(f"Selected **{len(selected_leads)}** of **{len(saved_leads)}** prospects.")
+            selected_leads = [saved_leads_display[i] for i in selected_indices]
+            st.info(f"Selected **{len(selected_leads)}** of **{len(saved_leads_display)}** prospects.")
 
             st.markdown("#### 🔐 Gmail Authentication")
             st.caption(

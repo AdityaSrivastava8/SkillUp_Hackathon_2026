@@ -93,6 +93,42 @@ def _generated_email(name: str) -> str:
     slug = _slug(name)
     return f"info@{slug}.com" if slug else ""
 
+
+def _detect_profession(name: str, source: str, website: str) -> str:
+    """Heuristic to detect whether a lead is a private detective, police, lawyer, or security agency.
+
+    Uses simple keyword matching on the agency name, source label, and website/domain.
+    Returns one of: 'Private Detective', 'Police', 'Lawyer', 'Security', or 'Unknown'.
+    """
+    try:
+        s = (name or "").lower()
+        src = (source or "").lower()
+        w = (website or "").lower()
+    except Exception:
+        return "Unknown"
+
+    # Government / police indicators
+    if "police" in s or "police" in src or "amenity" in src or ".gov" in w or "gov.in" in w:
+        return "Police"
+
+    # Lawyer / legal indicators
+    lawyer_terms = ["law", "advocat", "attorney", "solicitor", "counsel", "lawyer", "legal"]
+    for t in lawyer_terms:
+        if t in s or t in src or t in w:
+            return "Lawyer"
+
+    # Private detective / investigator indicators
+    detective_terms = ["detective", "investigat", "inquiry", "surveillance", "private investigator", "investigators", "inquiry bureau", "probe"]
+    for t in detective_terms:
+        if t in s or t in src or t in w:
+            return "Private Detective"
+
+    # Security companies
+    if "security" in s or "security" in src or "security" in w:
+        return "Security"
+
+    return "Unknown"
+
 _OSM_TAG_MAP = {
     "detective": [("office", "detective"), ("office", "investigator"), ("office", "lawyer")],
     "private": [("office", "detective"), ("office", "investigator")],
@@ -304,7 +340,14 @@ def _seed_leads(keyword: str, location: str, max_results: int) -> List[Dict]:
         })
     return leads
 
-def scrape_leads_sync(keyword: str, location: str, max_results: int = 20) -> List[Dict]:
+def scrape_leads_sync(keyword: str, location: str, max_results: int = 20, allow_generated: bool = False) -> List[Dict]:
+    """Scrape leads from multiple free sources.
+
+    By default, this function will NOT return generated placeholder leads (seeded names).
+    To allow generated placeholder leads (which must be verified manually), pass
+    allow_generated=True. This prevents low-confidence synthetic prospects for
+    locations with poor public-data coverage.
+    """
     try:
         max_results = int(max_results)
     except (TypeError, ValueError):
@@ -327,7 +370,8 @@ def scrape_leads_sync(keyword: str, location: str, max_results: int = 20) -> Lis
         except Exception:
             pass
 
-    if len(collected) < max_results:
+    # Only include generated seed leads if explicitly allowed by the caller.
+    if allow_generated and len(collected) < max_results:
         try:
             collected.extend(_seed_leads(keyword, location, max_results - len(collected)))
         except Exception:
@@ -341,6 +385,19 @@ def scrape_leads_sync(keyword: str, location: str, max_results: int = 20) -> Lis
         if not agency_name or key in seen_keys:
             continue
         seen_keys.add(key)
+        # Add a lightweight confidence field for downstream filtering/inspection
+        confidence = 50
+        src = str(lead.get("source", "")).strip().lower()
+        if "openstreetmap" in src or src == "openstreetmap" or src == "overpass":
+            confidence = 90
+        elif src in ("duckduckgo", "wikipedia"):
+            confidence = 70
+        elif "generated" in src or src.startswith("generated"):
+            confidence = 10
+
+        # Profession detection (private detective vs police vs lawyer vs security)
+        profession = _detect_profession(agency_name, lead.get("source", ""), lead.get("website", ""))
+
         unique.append({
             "agency_name": agency_name,
             "location": lead_location,
@@ -349,6 +406,8 @@ def scrape_leads_sync(keyword: str, location: str, max_results: int = 20) -> Lis
             "phone": str(lead.get("phone", "")).strip(),
             "source": str(lead.get("source", "Unknown")).strip(),
             "status": str(lead.get("status", "Prospect")).strip(),
+            "confidence": confidence,
+            "profession": profession,
         })
         if len(unique) >= max_results:
             break
