@@ -8,7 +8,7 @@ import os
 import json
 import math
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 def _tokenize(text: str) -> List[str]:
@@ -39,8 +39,12 @@ def _cosine(a: Dict[str, float], b: Dict[str, float]) -> float:
 
 class CaseRetriever:
 
-    def __init__(self, cases_dir: str = "cases", db_path: str = "./chroma_db"):
-        if os.path.isabs(cases_dir):
+    def __init__(self, cases_dir: Optional[str] = None, db_path: str = "./chroma_db"):
+        if cases_dir is None:
+            self.cases_dir = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), "..", "cases")
+            )
+        elif os.path.isabs(cases_dir):
             self.cases_dir = cases_dir
         else:
             self.cases_dir = os.path.abspath(cases_dir)

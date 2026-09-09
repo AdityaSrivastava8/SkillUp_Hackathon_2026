@@ -2,6 +2,7 @@ import os
 import json
 import re
 import time
+import math
 from typing import Tuple, List, Dict, Any
 
 # File Paths
@@ -62,7 +63,7 @@ def submit_payment(
     1. Validates UTR structure (returns error if fake/invalid format).
     2. Checks for duplicate UTR submissions.
     3. Calculates remaining deficit balance.
-    4. Auto-approves if full payment is reached.
+    4. Queues a full payment for admin verification.
     """
     utr_clean = utr.strip()
 
@@ -73,6 +74,9 @@ def submit_payment(
             "❌ Invalid UTR ID! Bank transaction reference numbers must be exactly 12 numerical digits.",
             required_amount
         )
+
+    if not isinstance(amount_paid, (int, float)) or not math.isfinite(amount_paid) or amount_paid < 0:
+        return STATUS_FLAGGED, "❌ Invalid payment amount.", required_amount
 
     payments = load_payments()
 
@@ -85,8 +89,8 @@ def submit_payment(
     remaining = max(0.0, required_amount - amount_paid)
 
     if amount_paid >= required_amount:
-        status = STATUS_APPROVED
-        msg = f"🎉 Congratulations! Payment of ₹{amount_paid:,.0f} verified. Your plan '{plan}' is now fully active with {evals} evaluations!"
+        status = STATUS_PENDING
+        msg = f"✅ Payment proof submitted for admin verification. Your plan '{plan}' will unlock after approval."
     else:
         status = STATUS_PARTIAL
         msg = f"⚠️ Partial Payment Detected: Plan price is ₹{required_amount:,.0f}, but you paid ₹{amount_paid:,.0f}. Please pay the remaining ₹{remaining:,.0f} to unlock your evaluations."
@@ -121,6 +125,9 @@ def submit_topup(topup_utr: str, parent_utr: str, topup_amount: float) -> Tuple[
             "❌ Invalid Top-Up UTR ID! Must be a valid 12-digit bank reference number.",
             0.0
         )
+
+    if not isinstance(topup_amount, (int, float)) or not math.isfinite(topup_amount) or topup_amount <= 0:
+        return STATUS_FLAGGED, "❌ Invalid top-up amount.", 0.0
 
     payments = load_payments()
 

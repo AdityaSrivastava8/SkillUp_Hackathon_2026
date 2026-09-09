@@ -8,6 +8,7 @@ import json
 import time
 import re
 import io
+import secrets
 import pandas as pd
 from fpdf import FPDF
 from agent.analyzer import DetectiveAgent
@@ -43,6 +44,8 @@ PLATFORM_URL = "https://skilluphackathon2026-crvfgw9pkgzk3bzrmhwmfq.streamlit.ap
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 PAYMENTS_FILE = os.path.join(DATA_DIR, "payments.json")
+TRIAL_USAGE_FILE = os.path.join(DATA_DIR, "trial_usage.json")
+TRIAL_LIMIT = 25
 
 def _ensure_data():
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -61,6 +64,63 @@ def save_payments(payments):
     _ensure_data()
     with open(PAYMENTS_FILE, "w", encoding="utf-8") as f:
         json.dump(payments, f, indent=2, ensure_ascii=False)
+
+def _get_trial_user_id() -> str:
+    """Keep a stable browser identifier across Streamlit reruns and refreshes."""
+    try:
+        current_id = str(st.query_params.get("trial_user", "")).strip()
+    except Exception:
+        current_id = ""
+
+    if current_id and re.fullmatch(r"[A-Za-z0-9_-]{20,100}", current_id):
+        return current_id
+
+    new_id = secrets.token_urlsafe(24)
+    st.query_params["trial_user"] = new_id
+    st.rerun()
+    return new_id
+
+def _load_trial_usage():
+    _ensure_data()
+    if not os.path.exists(TRIAL_USAGE_FILE):
+        return {}
+    try:
+        with open(TRIAL_USAGE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError, TypeError):
+        return {}
+
+def _save_trial_usage(usage):
+    _ensure_data()
+    with open(TRIAL_USAGE_FILE, "w", encoding="utf-8") as f:
+        json.dump(usage, f, indent=2, ensure_ascii=False)
+
+def _trial_remaining(user_id: str) -> int:
+    record = _load_trial_usage().get(user_id, {})
+    try:
+        used = max(0, int(record.get("used", 0)))
+    except (AttributeError, TypeError, ValueError):
+        used = 0
+    return max(0, TRIAL_LIMIT - min(TRIAL_LIMIT, used))
+
+def _consume_trial(user_id: str) -> int:
+    usage = _load_trial_usage()
+    record = usage.get(user_id, {})
+    try:
+        used = max(0, int(record.get("used", 0)))
+    except (AttributeError, TypeError, ValueError):
+        used = 0
+
+    if used >= TRIAL_LIMIT:
+        return 0
+
+    usage[user_id] = {
+        "used": used + 1,
+        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    _save_trial_usage(usage)
+    return TRIAL_LIMIT - used - 1
 
 ADMIN_PASSWORD = "Adi"
 
@@ -98,6 +158,12 @@ _ss_defaults = {
 for k, v in _ss_defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+TRIAL_USER_ID = _get_trial_user_id()
+if "trial_quota_loaded" not in st.session_state:
+    st.session_state.evals_left = _trial_remaining(TRIAL_USER_ID)
+    st.session_state.max_evals = TRIAL_LIMIT
+    st.session_state.trial_quota_loaded = True
 
 @st.cache_resource
 def load_agent():
@@ -264,10 +330,14 @@ if st.session_state.show_billing_portal:
                         st.session_state.show_billing_portal = False
                         st.rerun()
 
-if st.sidebar.button("🔄 Reset Demo & Clear Cache", use_container_width=True, key="sb_reset"):
-    for k, v in _ss_defaults.items():
-        st.session_state[k] = v
-    st.rerun()
+if st.session_state.is_admin:
+    if st.sidebar.button("🔄 Reset Demo & Clear Cache", use_container_width=True, key="sb_reset"):
+        for k, v in _ss_defaults.items():
+            st.session_state[k] = v
+        st.session_state.evals_left = _trial_remaining(TRIAL_USER_ID)
+        st.session_state.max_evals = TRIAL_LIMIT
+        st.session_state.trial_quota_loaded = True
+        st.rerun()
 
 st.sidebar.divider()
 with st.sidebar.expander("🔐 Admin Portal", expanded=False):
@@ -276,12 +346,16 @@ with st.sidebar.expander("🔐 Admin Portal", expanded=False):
         if st.button("🔓 Logout Admin", use_container_width=True, key="btn_admin_logout"):
             st.session_state.is_admin = False
             st.session_state.admin_open = False
+            st.session_state.evals_left = _trial_remaining(TRIAL_USER_ID)
+            st.session_state.max_evals = TRIAL_LIMIT
             st.rerun()
     else:
         admin_pw = st.text_input("Admin Password", type="password", placeholder="Enter admin password…", key="admin_pw_input")
         if st.button("🔑 Login", use_container_width=True, key="btn_admin_login"):
             if admin_pw == _get_admin_password():
                 st.session_state.is_admin = True
+                st.session_state.evals_left = "Unlimited"
+                st.session_state.max_evals = "Unlimited"
                 st.rerun()
             else:
                 st.error("❌ Incorrect password.")
@@ -389,7 +463,9 @@ if st.session_state.partial_utr:
                 if not _topup_utr.strip():
                     st.error("Please enter your top-up UTR.")
                 else:
-                    _ts, _tm = submit_topup(_topup_utr.strip(), _p_utr)
+                    _ts, _tm, _tr = submit_topup(
+                        _topup_utr.strip(), _p_utr, float(_p_remain)
+                    )
                     if "✅" in _tm:
                         st.success(_tm)
                         st.session_state.partial_utr = None
@@ -435,7 +511,7 @@ with tab_profile:
                             mo_suspected=behaviors, personality_notes=behaviors
                         )
                         if st.session_state.max_evals != "Unlimited":
-                            st.session_state.evals_left = max(0, st.session_state.evals_left - 1)
+                            st.session_state.evals_left = _consume_trial(TRIAL_USER_ID)
                         matched_cases = res.get("similar_cases", [])
                         risk_lbl = res.get("risk_level", "UNKNOWN")
                         st.session_state.latest_results = {
