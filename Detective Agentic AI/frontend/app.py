@@ -27,7 +27,6 @@ from agent.billing import (
     flag_partial,
     get_pending_payments,
     get_partial_by_utr,
-    get_approved_payment_for_user,
     STATUS_PENDING,
     STATUS_APPROVED,
     STATUS_PARTIAL,
@@ -170,23 +169,6 @@ if "trial_quota_loaded" not in st.session_state:
     st.session_state.max_evals = TRIAL_LIMIT
     st.session_state.quota_source = "trial"
     st.session_state.trial_quota_loaded = True
-
-approved_plan = get_approved_payment_for_user(TRIAL_USER_ID)
-if approved_plan and not st.session_state.is_admin:
-    st.session_state.quota_source = "paid"
-    approved_evals = approved_plan.get("evals")
-    if approved_evals == "Unlimited":
-        st.session_state.evals_left = "Unlimited"
-        st.session_state.max_evals = "Unlimited"
-    else:
-        try:
-            st.session_state.evals_left = int(approved_evals)
-            st.session_state.max_evals = int(approved_evals)
-        except (TypeError, ValueError):
-            pass
-    st.session_state.current_tier = approved_plan.get(
-        "plan", st.session_state.current_tier
-    )
 
 @st.cache_resource
 def load_agent():
@@ -340,8 +322,7 @@ if st.session_state.show_billing_portal:
                 if _paid_val is not None:
                     _status, _msg, _remaining = submit_payment(
                         plan=_plan, required_amount=float(_amount),
-                        amount_paid=_paid_val, evals=_evals, utr=_utr.strip(),
-                        user_id=TRIAL_USER_ID
+                        amount_paid=_paid_val, evals=_evals, utr=_utr.strip()
                     )
                     if _status == STATUS_FLAGGED:
                         st.sidebar.error(_msg)
@@ -672,8 +653,7 @@ with tab_billing:
                     if paid_val is not None:
                         _s, _m, _r = submit_payment(
                             plan=plan, required_amount=float(amount),
-                            amount_paid=paid_val, evals=evals,
-                            utr=utr_input.strip(), user_id=TRIAL_USER_ID
+                            amount_paid=paid_val, evals=evals, utr=utr_input.strip()
                         )
                         if _s == STATUS_FLAGGED:
                             st.error(_m)

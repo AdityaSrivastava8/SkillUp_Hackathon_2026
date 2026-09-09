@@ -56,8 +56,7 @@ def submit_payment(
     required_amount: float,
     amount_paid: float,
     evals: Any,
-    utr: str,
-    user_id: str = ""
+    utr: str
 ) -> Tuple[str, str, float]:
     """
     Submits and processes a payment proof:
@@ -106,7 +105,6 @@ def submit_payment(
         "amount_paid": amount_paid,
         "remaining_balance": remaining,
         "evals": evals,
-        "user_id": str(user_id or ""),
         "status": status,
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "topup_utrs": []
@@ -115,22 +113,6 @@ def submit_payment(
     payments.append(new_record)
     save_payments(payments)
     return status, msg, remaining
-
-
-def get_approved_payment_for_user(user_id: str) -> Dict[str, Any]:
-    """Return the latest approved plan belonging to a browser user."""
-    if not user_id:
-        return {}
-
-    approved = [
-        payment
-        for payment in load_payments()
-        if payment.get("user_id") == user_id
-        and payment.get("status") == STATUS_APPROVED
-    ]
-    if not approved:
-        return {}
-    return approved[-1]
 
 
 def submit_topup(topup_utr: str, parent_utr: str, topup_amount: float) -> Tuple[str, str, float]:
