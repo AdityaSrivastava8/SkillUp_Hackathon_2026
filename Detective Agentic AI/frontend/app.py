@@ -43,7 +43,7 @@ st.set_page_config(
     layout="wide"
 )
 
-PLATFORM_URL = "https://skilluphackathon2026-crvfgw9pkgzk3bzrmhwmfq.streamlit.app/"
+PLATFORM_URL = "https://skilluphackathon2026-crvfgw9pkgzk3bzrmhwmfq.streamlit.app/?trial_user=GokxfJ7NYPEF0Ej2e2ZJXhF9DB4O9cZb"
 
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 PAYMENTS_FILE = os.path.join(DATA_DIR, "payments.json")

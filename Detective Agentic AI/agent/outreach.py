@@ -15,13 +15,13 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 LEADS_FILE = os.path.join(DATA_DIR, "leads.json")
 
 SENDER_EMAIL = "yeahboyadi@gmail.com"
-PLATFORM_URL = "https://ibmhackathon2026-uzj9dxbwnxgkcdffvztpfa.streamlit.app/"
+PLATFORM_URL = "https://skilluphackathon2026-crvfgw9pkgzk3bzrmhwmfq.streamlit.app/?trial_user=GokxfJ7NYPEF0Ej2e2ZJXhF9DB4O9cZb"
 
 COLD_EMAIL_SUBJECT = "25 Free AI Profiling Credits for {agency_name} — Detective Agentic AI"
 
 COLD_EMAIL_BODY = """Hello {agency_name},
 
-We noticed your agency operating in {location}. We are reaching out to introduce Detective Agentic AI — an automated criminal profiling and precedent-matching system purpose-built for legal and investigative agencies like yours.
+We noticed your organization operating in {location}. We are reaching out to introduce Detective Agentic AI — an automated criminal profiling and precedent-matching system purpose-built for detective agencies, police officers, and lawyers.
 
 What we offer:
 
@@ -37,8 +37,8 @@ If you have any questions or would like a live walkthrough, simply reply to this
 
 Best regards,
 Aditya Srivastava          |  Akshat Verma
-Lead Developer & Founder   |  Co-Founder
-yeahboyadi@gmail.com        |  akshat.v2166@gmail.com
+Founder                    |  Partner
+yeahboyadi@gmail.com       |  akshat.v2166@gmail.com
 Detective Agentic AI — {platform_url}
 """
 
