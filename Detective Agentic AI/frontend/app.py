@@ -27,6 +27,7 @@ from agent.billing import (
     flag_partial,
     get_pending_payments,
     get_partial_by_utr,
+    get_approved_payment_for_user,
     STATUS_PENDING,
     STATUS_APPROVED,
     STATUS_PARTIAL,
@@ -147,6 +148,7 @@ def _get_gmail_app_password() -> str:
 _ss_defaults = {
     "evals_left": 25,
     "max_evals": 25,
+    "quota_source": "trial",
     "current_tier": "Pro Agency Trial",
     "latest_results": None,
     "pending_plan": None,
@@ -166,7 +168,25 @@ TRIAL_USER_ID = _get_trial_user_id()
 if "trial_quota_loaded" not in st.session_state:
     st.session_state.evals_left = _trial_remaining(TRIAL_USER_ID)
     st.session_state.max_evals = TRIAL_LIMIT
+    st.session_state.quota_source = "trial"
     st.session_state.trial_quota_loaded = True
+
+approved_plan = get_approved_payment_for_user(TRIAL_USER_ID)
+if approved_plan and not st.session_state.is_admin:
+    st.session_state.quota_source = "paid"
+    approved_evals = approved_plan.get("evals")
+    if approved_evals == "Unlimited":
+        st.session_state.evals_left = "Unlimited"
+        st.session_state.max_evals = "Unlimited"
+    else:
+        try:
+            st.session_state.evals_left = int(approved_evals)
+            st.session_state.max_evals = int(approved_evals)
+        except (TypeError, ValueError):
+            pass
+    st.session_state.current_tier = approved_plan.get(
+        "plan", st.session_state.current_tier
+    )
 
 @st.cache_resource
 def load_agent():
@@ -320,7 +340,8 @@ if st.session_state.show_billing_portal:
                 if _paid_val is not None:
                     _status, _msg, _remaining = submit_payment(
                         plan=_plan, required_amount=float(_amount),
-                        amount_paid=_paid_val, evals=_evals, utr=_utr.strip()
+                        amount_paid=_paid_val, evals=_evals, utr=_utr.strip(),
+                        user_id=TRIAL_USER_ID
                     )
                     if _status == STATUS_FLAGGED:
                         st.sidebar.error(_msg)
@@ -343,6 +364,7 @@ if st.session_state.is_admin:
             st.session_state[k] = v
         st.session_state.evals_left = _trial_remaining(TRIAL_USER_ID)
         st.session_state.max_evals = TRIAL_LIMIT
+        st.session_state.quota_source = "trial"
         st.session_state.trial_quota_loaded = True
         st.rerun()
 
@@ -355,6 +377,7 @@ with st.sidebar.expander("🔐 Admin Portal", expanded=False):
             st.session_state.admin_open = False
             st.session_state.evals_left = _trial_remaining(TRIAL_USER_ID)
             st.session_state.max_evals = TRIAL_LIMIT
+            st.session_state.quota_source = "trial"
             st.rerun()
     else:
         admin_pw = st.text_input("Admin 3-digit PIN", type="password", placeholder="Enter 3-digit admin PIN…", max_chars=3, key="admin_pw_input")
@@ -363,6 +386,7 @@ with st.sidebar.expander("🔐 Admin Portal", expanded=False):
                 st.session_state.is_admin = True
                 st.session_state.evals_left = "Unlimited"
                 st.session_state.max_evals = "Unlimited"
+                st.session_state.quota_source = "admin"
                 st.rerun()
             else:
                 st.error("❌ Invalid or incorrect 3-digit admin PIN.")
@@ -410,10 +434,12 @@ if st.session_state.is_admin:
                             if evals == "Unlimited":
                                 st.session_state.evals_left = "Unlimited"
                                 st.session_state.max_evals = "Unlimited"
+                                st.session_state.quota_source = "paid"
                             else:
                                 try:
                                     st.session_state.evals_left = int(evals)
                                     st.session_state.max_evals = int(evals)
+                                    st.session_state.quota_source = "paid"
                                 except Exception:
                                     pass
                             st.session_state.current_tier = _pplan
@@ -522,7 +548,12 @@ with tab_profile:
                             mo_suspected=behaviors, personality_notes=behaviors
                         )
                         if st.session_state.max_evals != "Unlimited":
-                            st.session_state.evals_left = _consume_trial(TRIAL_USER_ID)
+                            if st.session_state.quota_source == "trial":
+                                st.session_state.evals_left = _consume_trial(TRIAL_USER_ID)
+                            else:
+                                st.session_state.evals_left = max(
+                                    0, st.session_state.evals_left - 1
+                                )
                         matched_cases = res.get("similar_cases", [])
                         risk_lbl = res.get("risk_level", "UNKNOWN")
                         st.session_state.latest_results = {
@@ -641,7 +672,8 @@ with tab_billing:
                     if paid_val is not None:
                         _s, _m, _r = submit_payment(
                             plan=plan, required_amount=float(amount),
-                            amount_paid=paid_val, evals=evals, utr=utr_input.strip()
+                            amount_paid=paid_val, evals=evals,
+                            utr=utr_input.strip(), user_id=TRIAL_USER_ID
                         )
                         if _s == STATUS_FLAGGED:
                             st.error(_m)
