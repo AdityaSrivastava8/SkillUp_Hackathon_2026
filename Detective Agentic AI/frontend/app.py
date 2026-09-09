@@ -443,8 +443,8 @@ st.sidebar.markdown(
     "📧 [akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)"
 )
 
-st.title("🕵️‍♂️ Detective Agentic AI & RAG Profiling System")
-st.markdown("Automated criminal pattern recognition, risk evaluation, and precedent retrieval engine.")
+st.title("🕵️‍♂️ DetectiveAI")
+st.markdown("Detective Agentic AI & RAG Profiling System : Automated criminal pattern recognition, risk evaluation, and precedent retrieval engine.")
 st.divider()
 
 if st.session_state.partial_utr:
@@ -681,8 +681,8 @@ with tab_contact:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("### 📧 Founders — Direct Contact")
-        st.markdown("**Aditya Srivastava** \nFounder  \n📩 [yeahboyadi@gmail.com](mailto:yeahboyadi@gmail.com)")
-        st.markdown("**Akshat Verma** \nPartner  \n📩 [akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)")
+        st.markdown("**Aditya Srivastava** \n[Founder]  \n📩 [yeahboyadi@gmail.com](mailto:yeahboyadi@gmail.com)")
+        st.markdown("**Akshat Verma** \n[Partner]  \n📩 [akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)")
         st.markdown("---")
         st.markdown("### 🐛 Bug Reports")
         st.markdown("Please include:  \n- What you were doing  \n- What error / unexpected behaviour appeared  \n- Screenshot if possible  \n\nSend to **[yeahboyadi@gmail.com](mailto:yeahboyadi@gmail.com)** or **[akshat.v2166@gmail.com](mailto:akshat.v2166@gmail.com)** with subject line: `[BUG] Detective AI — <short description>`")
@@ -695,7 +695,7 @@ with tab_contact:
     st.divider()
     st.info(
         "⏱️ **Response time:** Typically within 24 hours on weekdays.  \n"
-        f"🌐 **Platform:** {PLATFORM_URL}"
+        #f"🌐 **Platform:** {PLATFORM_URL}"
     )
 
 if st.session_state.is_admin:
