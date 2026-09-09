@@ -191,6 +191,7 @@ Secure audit logs for administrative activities.
 
 The Admin Portal is a secure, admin-only section protected by a PIN. It ensures that only authorized administrators can access and manage platform-level features.
 Once authenticated, the administrator can unlock the portal and manage outreach and deployment activities for offering the Detective Agentic AI to different detective agencies.
+After entering 3 digit pin. Admin can access this option.
 
 ### Future Prospects
 
@@ -206,10 +207,13 @@ Monitor platform activity and performance.
 
 ![Pending Submissions](Screenshots/screenshot(10).png)
 
+
 ### Explanation
 
 The Pending Submissions section allows the admin to view all pending payment submissions made by users. It displays the relevant payment details, including the user name and UTR ID, so the admin can verify the transaction before approving the payment.
 This helps ensure that subscription payments are properly verified and prevents unauthorized plan activation.
+This option is exclusively for Admins, So after entering 3 digit pin. Admin can access this option.
+After full payment Admin allows the user to enjoy his/her desired plan.
 
 ### Future Prospects
 
@@ -249,6 +253,7 @@ The available plans are:
 Starter Agency – ₹500/month: 100 evaluations, standard RAG precedent search, and basic PDF export.
 Pro Agency – ₹1,000/month: 500 evaluations, faster ChromaDB vector search, and custom JSON file indexing.
 Enterprise SaaS – ₹2,000/month: Unlimited evaluations, private vector database, dedicated API, and priority support.
+After full payment Admin allows the user to enjoy his/her desired plan.
 
 ### Future Prospects
 
@@ -285,6 +290,7 @@ It creates a direct feedback loop between users and developers, allowing the pla
 
 The payment-verification screen allows the user to provide a transaction reference after completing payment.
 This introduces a verification layer before activating the selected service or credits.
+After full payment Admin allows the user to enjoy his/her desired plan.
 
 ### Future Prospects
 
@@ -307,6 +313,7 @@ Pay securely using UPI or QR code.
 Submit their UTR/transaction reference for verification.
 Request activation of their selected subscription plan.
 Reduce manual communication during payment processing.
+After full payment Admin allows the user to enjoy his/her desired plan.
 
 ### Future Prospects
 
@@ -330,6 +337,7 @@ Automatically identify incomplete payments.
 Clearly display the remaining balance.
 Submit a new UTR/transaction reference after paying the balance.
 Unlock advanced analysis after successful verification.
+After full payment Admin allows the user to enjoy his/her desired plan.
 
 ### Future Prospects
 
@@ -352,6 +360,7 @@ View all pending payment submissions in one place.
 Check the respective UTR/transaction IDs.
 Review and verify submitted payments.
 Approve payments and unlock the selected subscription.
+This option is exclusively for Admins, So after entering 3 digit pin. Admin can access this option.
 
 ### Future Prospects
 
